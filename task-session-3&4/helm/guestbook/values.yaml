@@ -1,0 +1,32 @@
+namespace: webapp-stack
+
+image:
+  repository: abeer/fastapi-guestbook
+  tag: task3
+
+webapp:
+  replicas: 2
+
+mysqlWrite:
+  replicas: 1
+
+mysqlRead:
+  replicas: 2
+
+storage:
+  size: 2Gi
+  hostPath: /data/mysql-write
+  node: task3-m02
+
+config:
+  appTitle: "MLOps MENA Guestbook"
+  mysqlPort: "3306"
+
+secret:
+  mysqlUser: "appuser"
+  mysqlPassword: "StrongPass123"
+  mysqlDatabase: "guestbook"
+
+ingress:
+  className: nginx
+  path: /

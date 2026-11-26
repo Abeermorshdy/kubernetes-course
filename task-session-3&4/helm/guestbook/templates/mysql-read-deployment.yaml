@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-read
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.mysqlRead.replicas }}
+  selector:
+    matchLabels:
+      app: mysql
+      role: read
+  template:
+    metadata:
+      labels:
+        app: mysql
+        role: read
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+          args:
+            - --server-id=2
+            - --relay-log=relay-bin
+            - --read-only=1
+          volumeMounts:
+            - name: mysql-init
+              mountPath: /docker-entrypoint-initdb.d
+
+      initContainers:
+        - name: wait-for-write
+          image: busybox:1.36
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until nc -z mysql-write 3306; do
+                echo "Waiting for mysql-write..."
+                sleep 3
+              done
+              echo "mysql-write is ready"
+      volumes:
+        - name: mysql-init
+          configMap:
+            name: mysql-init-script
